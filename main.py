@@ -48,11 +48,11 @@ async def process_files(text: str = Form(...), file: UploadFile = File(...)):
     content = []
     text_question = {
         "type": "text",
-        "text": text
+        "text": text + ", The answer must be formatted beautifully in HTML. You don't have to use the html tag. You can start with div. Aslo Don't include any description outside the html. "
     }
 
     content.append(text_question)
-
+    print(content[0]["text"])
     for image_file in image_files:
         if file.content_type.startswith('video'):
             base64_image = encode_frame(image_file)
