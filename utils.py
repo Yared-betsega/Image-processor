@@ -7,29 +7,16 @@ def convert_video_to_images(video_path, frame_interval):
     # Open the video file
     video = cv2.VideoCapture(video_path)
     
-    # Initialize frame count
-    frame_count = 0
-    
-    frames = []
-    
-    # Read the first frame
-    success, frame = video.read()
-    # Loop through the video frames
-    while success:
-        # Save the frame as an image if it's a necessary frame
-        if frame_count % frame_interval == 0:
-            frames.append(frame)
-        
-        # Read the next frame
+    base64Frames = []
+    while video.isOpened():
         success, frame = video.read()
-        
-        # Increment frame count
-        frame_count += 1
-    
-    # Release the video object
+        if not success:
+            break
+        base64Frames.append(encode_frame(frame))
+
     video.release()
     
-    return frames
+    return base64Frames
 
 def convert_video_to_images_and_save(video_path, frame_interval):
     output_folder = "./images/"

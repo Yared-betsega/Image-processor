@@ -1,13 +1,18 @@
 import requests
+import openai
+from openai import OpenAI
 import os
 from fastapi import FastAPI, UploadFile, File, Form
 from typing import List
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from utils import convert_video_to_images, encode_frame, encode_image
+import shutil
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = FastAPI()
 
@@ -23,65 +28,62 @@ app.add_middleware(
 
 @app.post("/process")
 async def process_files(text: str = Form(...), file: UploadFile = File(...)):
-    if file.content_type.startswith('video'):
-        video_path = f"./videos/{file.filename}"
+    is_video = file.content_type.startswith('video')
+    
+    if is_video:
+        path = "./videos"
+        if not os.path.exists(path):
+            os.mkdir(path)
+        shutil.rmtree(path)
+        os.mkdir(path)
+        video_path = f"{path}/{file.filename}"
         await file.seek(0)
 
         with open(video_path, "wb") as video_file:
             video_file.write(file.file.read())
-        image_files = convert_video_to_images(video_path, 100)
+        base64Frames = convert_video_to_images(video_path, 100)
 
     elif file.content_type.startswith('image'):
-        image_files = [f"./images/{file.filename}"]
+        path = "./images"
+        if not os.path.exists(path):
+            os.mkdir(path)
+        shutil.rmtree(path)
+        os.mkdir(path)
+        
+        base64Frames = []
         await file.seek(0)
-
-        with open(image_files[0], "wb") as image_file:
+        image_file_loc = f"{path}/{file.filename}"
+        with open(image_file_loc, "wb") as image_file:
             image_file.write(file.file.read())
+        base64Frames.append(encode_image(image_file_loc))
     else:
         return {"error": "Invalid file type. Only images and videos are supported."}
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {OPENAI_API_KEY}"
-    }
-
-    content = []
-    text_question = {
-        "type": "text",
-        "text": text + ", The answer must be formatted beautifully in HTML. You don't have to use the html tag. You can start with div. Aslo Don't include any description outside the html. "
-    }
-
-    content.append(text_question)
-    print(content[0]["text"])
-    for image_file in image_files:
-        if file.content_type.startswith('video'):
-            base64_image = encode_frame(image_file)
-        else:
-            base64_image = encode_image(image_file)
-
-        content.append({
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/jpeg;base64,{base64_image}"
-            }
-        })
-
-        if len(content) > 10:
-            break
-    
-
-    payload = {
-        "model": "gpt-4-turbo",
-        "messages": [
+    gap = len(base64Frames) // 45 if is_video else 1
+    start = 25 if is_video else 0
+    try: 
+        starter = "These are frames from a video that a user want me to process from CCTV. " if is_video else "This is an image a user want me to process. "
+        PROMPT_MESSAGES = [
             {
                 "role": "user",
-                "content": content
-            }
-        ],
-        "max_tokens": 300
-    }
+                "content": [
+                    starter + text + ", The answer must be formatted in HTML. Aslo Don't include any description outside the html. Since I will embed the html in other web app, don't put it inside html or body tags.",
+                    *map(lambda x: {"image": x, "resize": 768}, base64Frames[start::gap]),
+                ],
+            },
+        ]
+        
+        params = {
+            "model": "gpt-4-vision-preview",
+            "messages": PROMPT_MESSAGES,
+            "max_tokens": 200,
+        }
 
-    response = requests.post(
-        "https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        
+        result = client.chat.completions.create(**params)
 
-    return response.json()
+        return result
+    
+    except openai.BadRequestError as e:
+        return e.response.json()
+        
