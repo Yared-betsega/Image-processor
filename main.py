@@ -1,16 +1,25 @@
-import requests
 import openai
 from openai import OpenAI
-import os
 from fastapi import FastAPI, UploadFile, File, Form
 from typing import List
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
-from utils import convert_video_to_images, encode_frame, encode_image
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+import cloudinary
+import cloudinary.uploader
+import os
 import shutil
+from utils import convert_video_to_images, encode_frame, encode_image
+
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+MONGODB_URL = os.getenv("MONGODB_URL")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
+CLOUDINARY_NAME = os.getenv("CLOUDINARY_NAME")
+CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -26,8 +35,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Connect to MongoDB
+print(MONGODB_URL)
+mongo_client = MongoClient(MONGODB_URL if MONGODB_URL else "mongodb://localhost:27017", server_api=ServerApi('1'))
+db = mongo_client[DATABASE_NAME if DATABASE_NAME else "john-uk"]
+collection = db["usage"]
+
+try:
+    mongo_client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=CLOUDINARY_NAME,
+    api_key=CLOUDINARY_API_KEY,
+    api_secret=CLOUDINARY_API_SECRET,
+)
+
+# Function to upload file to Cloudinary and return public link
+def upload_file_to_cloudinary(file, resource_type):
+    upload_result = cloudinary.uploader.upload(file, folder="John-UK", resource_type = resource_type)
+    return upload_result["secure_url"]
+
+# Store information in MongoDB and upload file to Cloudinary
 @app.post("/process")
-async def process_files(text: str = Form(...), file: UploadFile = File(...)):
+async def process_files(text: str = Form(...), file: UploadFile = File(...), email: str = Form(...)):
+
     is_video = file.content_type.startswith('video')
     
     if is_video:
@@ -61,6 +96,7 @@ async def process_files(text: str = Form(...), file: UploadFile = File(...)):
 
     gap = len(base64Frames) // 45 if is_video else 1
     start = 25 if is_video else 0
+    
     try: 
         starter = "These are frames from a video that a user want me to process from CCTV. " if is_video else "This is an image a user want me to process. "
         PROMPT_MESSAGES = [
@@ -81,6 +117,22 @@ async def process_files(text: str = Form(...), file: UploadFile = File(...)):
 
         
         result = client.chat.completions.create(**params)
+        
+        
+        
+
+
+        # Upload file to Cloudinary
+        file_url = upload_file_to_cloudinary(video_path if is_video else image_file_loc, "video" if is_video else "image")
+
+        # Store information in MongoDB
+        data = {
+            "email": email,
+            "questionText": text,
+            "answerText": result.choices[0].message.content,
+            "fileUrl" : file_url
+        }
+        collection.insert_one(data)
 
         return result
     
