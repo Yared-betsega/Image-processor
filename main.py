@@ -63,6 +63,7 @@ def upload_file_to_cloudinary(file, resource_type):
 @app.post("/process")
 async def process_files(text: str = Form(...), file: UploadFile = File(...), email: str = Form(...)):
 
+    print("Entered")
     is_video = file.content_type.startswith('video')
     
     if is_video:
@@ -115,13 +116,11 @@ async def process_files(text: str = Form(...), file: UploadFile = File(...), ema
             "max_tokens": 200,
         }
 
-        
+        print("Sending request to openai")
         result = client.chat.completions.create(**params)
         
-        
-        
 
-
+        print("Uploading file to cloudninary")
         # Upload file to Cloudinary
         file_url = upload_file_to_cloudinary(video_path if is_video else image_file_loc, "video" if is_video else "image")
 
@@ -132,10 +131,15 @@ async def process_files(text: str = Form(...), file: UploadFile = File(...), ema
             "answerText": result.choices[0].message.content,
             "fileUrl" : file_url
         }
+        print("Adding to database")
         collection.insert_one(data)
 
+        print("Returning result")
         return result
     
     except openai.BadRequestError as e:
         return e.response.json()
+    
+    except Exception as e:
+        return {"error": str(e)}
         
