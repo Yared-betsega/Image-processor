@@ -143,3 +143,18 @@ async def process_files(text: str = Form(...), file: UploadFile = File(...), ema
     except Exception as e:
         return {"error": str(e)}
         
+
+
+
+@app.get("/usage")
+async def get_usage_data(email: str):
+    print(email)
+    try:
+        usage_data = collection.find({"email": email})
+        response = []
+        for data in usage_data:
+            data['_id'] = str(data['_id'])
+            response.append(data)
+        return response
+    except Exception as e:
+        return {"error": str(e)}
