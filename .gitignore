@@ -13,3 +13,4 @@ venv/
 .env
 vercel.json
 package.json
+service-account-file.json

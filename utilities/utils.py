@@ -3,10 +3,11 @@ import cv2
 import os
 import shutil
 
+
 def convert_video_to_images(video_path, frame_interval):
     # Open the video file
     video = cv2.VideoCapture(video_path)
-    
+
     base64Frames = []
     while video.isOpened():
         success, frame = video.read()
@@ -15,46 +16,39 @@ def convert_video_to_images(video_path, frame_interval):
         base64Frames.append(encode_frame(frame))
 
     video.release()
-    
+
     return base64Frames
 
-def convert_video_to_images_and_save(video_path, frame_interval):
-    output_folder = "./images/"
+
+def convert_video_to_images_for_aws(video_path, frame_interval):
     # Open the video file
     video = cv2.VideoCapture(video_path)
-    # Create the output folder if it doesn't exist
-    os.makedirs(output_folder, exist_ok=True)
-    
-    # Clear the output folder
-    shutil.rmtree(output_folder)
-    os.makedirs(output_folder)
-    
-    # Initialize frame count
-    frame_count = 0
-    
-    # Read the first frame
-    success, frame = video.read()
-    # Loop through the video frames
-    while success:
-        # Save the frame as an image if it's a necessary frame
-        if frame_count % frame_interval == 0:
-            image_path = os.path.join(output_folder, f"frame_{frame_count}.jpg")
-            cv2.imwrite(image_path, frame)
-        
-        # Read the next frame
+
+    base64Frames = []
+    while video.isOpened():
         success, frame = video.read()
-        
-        # Increment frame count
-        frame_count += 1
-    
-    # Release the video object
+        if not success:
+            break
+        _, image_buffer = cv2.imencode('.jpg', frame)
+        image_bytes = image_buffer.tobytes()
+        base64Frames.append(image_bytes)
+
     video.release()
-    
-    return output_folder
-    
+
+    return base64Frames
+
+
+
+
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
+
+
+def encode_image_for_aws(image_path):
+    with open(image_path, "rb") as image_file:
+        return image_file.read()
+
 
 def encode_frame(frame):
     _, encoded_frame = cv2.imencode('.jpg', frame)

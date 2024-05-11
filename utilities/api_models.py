@@ -1,0 +1,9 @@
+from enum import Enum
+
+
+class SelectedAPI(Enum):
+    OPENAI = "OPENAI"
+    CLAUDE_ANTHROPIC = "CLAUDE_ANTHROPIC"
+    AWS_RECOGNITION = "AWS_RECOGNITION"
+    GOOGLE_VISION = "GOOGLE_VISION"
+    ASTICA = "ASTICA"
