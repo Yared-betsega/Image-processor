@@ -349,9 +349,9 @@ class ApiServices:
         if analysis_results.get('moderate'):
             html_content.append('<h2>Moderate</h2>')
             html_content.append('<ul>')
-            html_content.append(f'<li>Is adult content?: {obj["moderate"]['isAdultContent']}</li>')
-            html_content.append(f'<li>Is racy content?: {obj["moderate"]['isRacyContent']}</li>')
-            html_content.append(f'<li>Is gory content?: {obj["moderate"]['isGoryContent']}</li>')
+            html_content.append('<li>Is adult content?: ' + str(obj["moderate"]['isAdultContent']) + '</li>')
+            html_content.append('<li>Is racy content?: ' + str(obj["moderate"]['isRacyContent']) + '</li>')
+            html_content.append('<li>Is gory content?: ' + str(obj["moderate"]['isGoryContent']) + '</li>')
 
             html_content.append('</ul>')
 
@@ -359,10 +359,10 @@ class ApiServices:
         if analysis_results.get('faces'):
             html_content.append('<h2>Detected Faces and Emotions</h2>')
             for face in analysis_results['faces']:
-                html_content.append(f'<h3>Face</h3>')
+                html_content.append('<h3>Face</h3>')
                 html_content.append('<ul>')
-                html_content.append(f'<li>Age: {face['age']}</li>')
-                html_content.append(f'<li>Gender: {face['gender']}</li>')
+                html_content.append('<li>Age: ' + str(face['age']) + '</li>')
+                html_content.append('<li>Gender: ' + str(face['gender']) + '</li>')
                 html_content.append('</ul>')
 
         # Combine the HTML parts into a single string
