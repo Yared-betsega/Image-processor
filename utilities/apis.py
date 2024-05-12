@@ -294,10 +294,7 @@ class ApiServices:
             html_content.append('<h2>Detected Labels</h2>')
             html_content.append('<ul>')
             for label in analysis_results['labels']:
-                html_content.append(
-                    f'<li>{label["description"]}: {
-                        label["score"]:.2f}% confidence</li>'
-                )
+                html_content.append(f'<li>{label["description"]}: {label["score"]:.2f}% confidence</li>')
             html_content.append('</ul>')
 
         # Objects Section
@@ -305,9 +302,7 @@ class ApiServices:
             html_content.append('<h2>Detected Objects</h2>')
             html_content.append('<ul>')
             for obj in analysis_results['objects']:
-                html_content.append(
-                    f'<li>{obj["name"]}: {obj["score"]:.2f}% confidence</li>'
-                )
+                html_content.append(f'<li>{obj["name"]}: {obj["score"]:.2f}% confidence</li>')
             html_content.append('</ul>')
 
         # Text Section
@@ -325,8 +320,7 @@ class ApiServices:
                 html_content.append(f'<h3>Face {face["face"]}</h3>')
                 html_content.append('<ul>')
                 for emotion, likelihood in face['emotions'].items():
-                    html_content.append(
-                        f'<li>{emotion.capitalize()}: {likelihood}</li>')
+                    html_content.append(f'<li>{emotion.capitalize()}: {likelihood}</li>')
                 html_content.append('</ul>')
 
         # Combine the HTML parts into a single string
