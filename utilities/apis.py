@@ -343,21 +343,15 @@ class ApiServices:
             html_content.append('<h2>Detected Objects</h2>')
             html_content.append('<ul>')
             for obj in analysis_results['objects']:
-                html_content.append(
-                    f'<li>{obj["name"]}: {
-                        obj["confidence"]:.2f}% confidence</li>'
-                )
+                html_content.append(f'<li>{obj["name"]}: {obj["confidence"]:.2f}% confidence</li>')
             html_content.append('</ul>')
 
         if analysis_results.get('moderate'):
             html_content.append('<h2>Moderate</h2>')
             html_content.append('<ul>')
-            html_content.append(f'<li>Is adult content?: {
-                                obj["moderate"]['isAdultContent']}</li>')
-            html_content.append(f'<li>Is racy content?: {
-                                obj["moderate"]['isRacyContent']}</li>')
-            html_content.append(f'<li>Is gory content?: {
-                                obj["moderate"]['isGoryContent']}</li>')
+            html_content.append(f'<li>Is adult content?: {obj["moderate"]['isAdultContent']}</li>')
+            html_content.append(f'<li>Is racy content?: {obj["moderate"]['isRacyContent']}</li>')
+            html_content.append(f'<li>Is gory content?: {obj["moderate"]['isGoryContent']}</li>')
 
             html_content.append('</ul>')
 
