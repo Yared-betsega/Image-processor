@@ -4,10 +4,18 @@ from anthropic import Anthropic
 import boto3
 from google.cloud import vision
 from google.oauth2 import service_account
+
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+
 from dotenv import load_dotenv
 import requests
 import json
 import os
+
+from utilities.response import Response
 
 
 load_dotenv()
@@ -17,6 +25,8 @@ ASTICA_API_KEY = os.getenv("ASTICA_API_KEY")
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_SESSION_TOKEN = os.getenv("AWS_SESSION_TOKEN")
+SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+PASSWORD = os.getenv("PASSWORD")
 
 
 class ApiServices:
@@ -275,6 +285,51 @@ class ApiServices:
                 'message': e.message
             }, False
 
+    def send_email(self, data: Response, is_video):
+
+        subject = "Video " if is_video else "Image " + "Processing Result"
+        answer = data.answerText
+        if 'html' in answer:
+            answer = answer[7:-3]
+
+        question_data = f"""
+                <p>Model Used: {data.model}</p>
+                <p>Date: {data.date}</p>
+                <p>Question: {data.questionText}</p>
+            """
+        if is_video:
+            thumbnail = self.extract_thumbnail(data.fileUrl)
+            video_html = f'Video: <a href="{data.fileUrl}"><img src="{thumbnail}" height="300px"/></a>'
+        else:
+            image_html = f'Image: <a href="{data.fileUrl}"><img src="{data.fileUrl}" height="300px"/></a>'
+        file_data =  video_html if is_video else image_html
+        
+        answer_data = f"""
+                <p> Answer: {answer} </p>
+                <br >
+                <p> Best Regards, </p>
+                <p > John UK < /p >
+        """
+    
+        body = question_data + file_data + answer_data
+
+        msg = MIMEMultipart()
+        msg['From'] = SENDER_EMAIL
+        msg['To'] = data.email
+        msg['Subject'] = subject
+
+        msg.attach(MIMEText(body, 'html'))
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()  # Secure the connection
+
+        server.login(SENDER_EMAIL, PASSWORD)
+
+        text = msg.as_string()
+        server.sendmail(SENDER_EMAIL, data.email, text)
+
+        server.quit()
+
     def generate_description_for_aws_recognition(self, labels, text):
         description = "This image contains: "
         if labels:
@@ -368,3 +423,8 @@ class ApiServices:
         # Combine the HTML parts into a single string
         html_result = "\n".join(html_content)
         return html_result
+    
+    def extract_thumbnail(self, video_url):
+        base_url, _ = video_url.rsplit('.', 1)
+        thumbnail_url = f"{base_url}.jpg"
+        return thumbnail_url

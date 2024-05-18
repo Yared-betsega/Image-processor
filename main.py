@@ -159,6 +159,8 @@ async def process_files(text: str = Form(...), file: UploadFile = File(...), ema
                         fileUrl=file_url, date=current_time, model=selected_api)
 
     collection.insert_one(response.to_dict())
+    
+    api_service.send_email(response, is_video)
 
     return JSONResponse(content=response.to_dict(), status_code=200)
 
