@@ -1,3 +1,4 @@
+import datetime
 import openai
 from openai import OpenAI
 from anthropic import Anthropic
@@ -291,10 +292,12 @@ class ApiServices:
         answer = data.answerText
         if 'html' in answer:
             answer = answer[7:-3]
+            
+        date = datetime.datetime.strptime(data.date, '%Y-%m-%dT%H:%M:%S.%f')
 
         question_data = f"""
                 <p>Model Used: {data.model}</p>
-                <p>Date: {data.date}</p>
+                <p>Date: {date.strftime('%B %d, %Y')}</p>
                 <p>Question: {data.questionText}</p>
             """
         if is_video:
@@ -306,9 +309,11 @@ class ApiServices:
         
         answer_data = f"""
                 <p> Answer: {answer} </p>
-                <br >
+                <br>
+                <p>Thank you for using our services.</p>
+                <br>
                 <p> Best Regards, </p>
-                <p > John UK < /p >
+                <p > John UK </p>
         """
     
         body = question_data + file_data + answer_data
